@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from crypto.api.bsc import BinanceSmartChain, bsc_client
+from crypto.utils.web3 import function_signature, to_int, to_float, to_bool, to_text, iterable_types
+from crypto.utils.error import error
 
 import argparse
 
@@ -11,6 +13,8 @@ def set_args():
   parser.description = "Get information about a BSC address."
   parser.add_argument("address", help="contract address")
   parser.add_argument("--input", help="decode some input")
+  parser.add_argument("--data", help="make a proxy call with selector and arguments encoded as hex data e.g. 0xeb91d37e", type=str)
+  parser.add_argument("--types", help="data output types for the proxy call, e.g. --types (uint256,bool,bytes,string,address[])", type=str)
   args = parser.parse_args()
 
 def print_info_functions(contract: BinanceSmartChain, functions: list[str]):
@@ -61,21 +65,45 @@ def print_info_address(address: BinanceSmartChain):
 
 def print_decoded_input(address: BinanceSmartChain, input: str):
   try:
-    print('\nDecoded Input:', address.decode_input(input))
+    decoded_function, decoded_args = address.decode_input(input)
+    print('\nDecoded Input:\n')
+    print(function_signature(decoded_function))
+    print(decoded_args)
   except ValueError as e:
     print('\nCannot decode Input:', e)
+
+def print_proxy_call(address: BinanceSmartChain, input_data: str, types: str = None):
+  output_data = address.proxy_call(input_data)
+  print(f'\nProxy Call ({input_data}):')
+  print('hex', output_data)
+  if types:
+    original_types = iterable_types(types)
+    types_tuple = iterable_types(types.replace('float', 'uint256'))
+    decoded_output = address.decode_output(output_data, types_tuple)
+    for original_type, value in zip(original_types, decoded_output):
+      if original_type == 'float':
+        value = to_float(value)
+      print(original_type, value)
+  else:
+    print('int', to_int(output_data))
+    print('float', to_float(output_data))
+    print('bool', to_bool(output_data))
+    print('text', to_text(output_data))
 
 def main():
   set_args()
 
   try:
     with bsc_client(args.address) as address:
+      if args.data:
+        print_proxy_call(address, args.data, args.types)
+      
       print_info_address(address)
       
       if args.input:
         print_decoded_input(address, args.input)
   except ValueError as e:
-    print(f'Error: {e}')
+    error(e)
 
 if __name__ == "__main__":
   main()

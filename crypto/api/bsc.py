@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Any, Callable, Union, Iterable
 
 import os
 
@@ -13,8 +13,9 @@ from web3.types import ABI
 from web3.contract import Contract, ContractFunction, ContractFunctions
 from web3.exceptions import ContractLogicError
 from eth_typing.evm import ChecksumAddress
+from eth_typing.encoding import HexStr
 
-from crypto.utils.web3 import web3_http, from_wei, is_empty, is_zero_address, hexbytes_to_address, function_signature, function_info, get_abi_output_names
+from crypto.utils.web3 import web3_http, from_wei, is_empty, is_zero_address, hexbytes_to_address, function_signature, function_info, get_abi_output_names, decode_data
 from crypto.utils.error import error
 
 # BSCScan API
@@ -171,6 +172,9 @@ class BinanceSmartChain:
       raise ValueError(f'Cannot get contract{error}')
     return self.contract.decode_function_input(input)
   
+  def decode_output(self, data: HexStr, types: Iterable[str]) -> tuple[Any]:
+    return decode_data(self._web3, data, types)
+  
   def _set_contract(self):
     if self._contract is None and self.is_contract:
       self._contract = self._get_contract(self._address)
@@ -189,7 +193,7 @@ class BinanceSmartChain:
         key = f'f_{key}'
       setattr(self, key, self.wrap_call(f))
   
-  def call(self, f: ContractFunction, *call_args, **call_kwargs) -> Union[tuple, dict, any]:
+  def call(self, f: ContractFunction, *call_args, **call_kwargs) -> Union[tuple, dict, Any]:
     results = f.call(*call_args, **call_kwargs)
     if type(results) is not tuple:
       results = (results)
@@ -205,7 +209,7 @@ class BinanceSmartChain:
   def __contains__(self, f: str) -> bool:
     return f in self.functions if self.functions else False
 
-  def __call__(self, f: Union[str, ContractFunction], *args, **kwargs) -> any:
+  def __call__(self, f: Union[str, ContractFunction], *args, **kwargs) -> Any:
     f = self[f] if type(f) is str else self.wrap_call(f)
     return f(*args, **kwargs)
   
