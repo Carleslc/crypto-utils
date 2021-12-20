@@ -1,0 +1,4 @@
+-e .
+web3
+python-dotenv
+bscscan-python

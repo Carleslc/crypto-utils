@@ -1,2 +1,8 @@
-# crypto-utils
-Blockchain utilities for personal use.
+# Crypto Utils
+Blockchain financial utilities.
+
+## Install
+
+```
+pip install --upgrade -r requirements.txt
+```
